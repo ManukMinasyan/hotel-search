@@ -13,7 +13,7 @@
             <el-form-item label="Storeys">
                 <el-input-number v-model="searchForm.storeys"></el-input-number>
             </el-form-item>
-            <el-form-item label="Storeys">
+            <el-form-item label="Garages">
                 <el-input-number v-model="searchForm.garages"></el-input-number>
             </el-form-item>
             <div class="block">
@@ -22,8 +22,8 @@
                         v-model="searchForm.price"
                         range
                         show-stops
-                        :step="10"
-                        :max="20000">
+                        :step="1000"
+                        :max="1000000">
                 </el-slider>
             </div>
             <el-form-item>
@@ -32,6 +32,7 @@
             </el-form-item>
         </el-form>
         <el-table
+                :lazy="loading"
                 :data="hotelsData"
                 height="500"
                 style="width: 100%">
@@ -74,13 +75,14 @@
     bathrooms: 0,
     storeys: 0,
     garages: 0,
-    price: [1, 20000],
+    price: [1, 1000000],
   }
 
   export default {
     name: 'Hotels',
     data () {
       return {
+        loading: false,
         searchForm: JSON.parse(JSON.stringify(searchModel)),
         hotelsData: [],
       }
@@ -89,6 +91,25 @@
       this.getHotels()
     },
     methods: {
+      async search (data) {
+        try {
+          this.loading = true
+
+          const searchData = Object.keys(data).filter(key => data[key] !== 0).reduce((obj, key) => {
+            obj[key] = data[key]
+            return obj
+          }, {})
+
+          const response = await http.get('hotels/filter', { params: searchData });
+
+          this.hotelsData = [...response.data.data]
+
+        } catch (error) {
+          console.log(error)
+        } finally {
+          this.loading = false
+        }
+      },
       getHotels () {
         http.get('hotels').then(r => {
           this.hotelsData = r.data.data
@@ -101,14 +122,12 @@
           price: { start, end },
         }
 
+        this.search(data);
       },
       cancelFilters () {
         this.$set(this.$data, 'searchForm', JSON.parse(JSON.stringify(searchModel)))
+        this.getHotels();
       },
     },
   }
 </script>
-
-<style>
-
-</style>
